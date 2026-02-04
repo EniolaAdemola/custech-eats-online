@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { useAuth } from '@/contexts/AuthContext';
 import { MenuCategory, MenuItem } from '@/types/database';
+import { ImageUpload } from '@/components/admin/ImageUpload';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -35,6 +36,7 @@ const menuItemSchema = z.object({
   category_id: z.string().optional(),
   preparation_time: z.number().min(1).default(15),
   is_available: z.boolean().default(true),
+  image_url: z.string().nullable().optional(),
 });
 
 type MenuItemFormData = z.infer<typeof menuItemSchema>;
@@ -48,6 +50,7 @@ const AdminMenu = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<MenuItem | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [currentImageUrl, setCurrentImageUrl] = useState<string | null>(null);
 
   const form = useForm<MenuItemFormData>({
     resolver: zodResolver(menuItemSchema),
@@ -58,6 +61,7 @@ const AdminMenu = () => {
       category_id: '',
       preparation_time: 15,
       is_available: true,
+      image_url: null,
     },
   });
 
@@ -90,6 +94,7 @@ const AdminMenu = () => {
 
   const handleAddItem = () => {
     setEditingItem(null);
+    setCurrentImageUrl(null);
     form.reset({
       name: '',
       description: '',
@@ -97,12 +102,14 @@ const AdminMenu = () => {
       category_id: '',
       preparation_time: 15,
       is_available: true,
+      image_url: null,
     });
     setDialogOpen(true);
   };
 
   const handleEditItem = (item: MenuItem) => {
     setEditingItem(item);
+    setCurrentImageUrl(item.image_url);
     form.reset({
       name: item.name,
       description: item.description || '',
@@ -110,6 +117,7 @@ const AdminMenu = () => {
       category_id: item.category_id || '',
       preparation_time: item.preparation_time || 15,
       is_available: item.is_available,
+      image_url: item.image_url,
     });
     setDialogOpen(true);
   };
@@ -128,6 +136,7 @@ const AdminMenu = () => {
             category_id: data.category_id || null,
             preparation_time: data.preparation_time,
             is_available: data.is_available,
+            image_url: currentImageUrl,
           })
           .eq('id', editingItem.id);
 
@@ -143,6 +152,7 @@ const AdminMenu = () => {
             category_id: data.category_id || null,
             preparation_time: data.preparation_time,
             is_available: data.is_available,
+            image_url: currentImageUrl,
           });
 
         if (error) throw error;
@@ -150,6 +160,7 @@ const AdminMenu = () => {
       }
 
       setDialogOpen(false);
+      setCurrentImageUrl(null);
       fetchData();
     } catch (error) {
       console.error('Error saving menu item:', error);
@@ -298,6 +309,16 @@ const AdminMenu = () => {
                 </DialogHeader>
                 <Form {...form}>
                   <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
+                    {/* Image Upload */}
+                    <FormItem>
+                      <FormLabel>Image</FormLabel>
+                      <ImageUpload
+                        currentImageUrl={currentImageUrl}
+                        onImageChange={setCurrentImageUrl}
+                        disabled={isSubmitting}
+                      />
+                    </FormItem>
+
                     <FormField
                       control={form.control}
                       name="name"
@@ -431,10 +452,23 @@ const AdminMenu = () => {
                       {items.map(item => (
                         <Card key={item.id} className={!item.is_available ? 'opacity-60' : ''}>
                           <CardContent className="p-4">
-                            <div className="flex items-center justify-between">
-                              <div className="flex-1">
+                            <div className="flex items-center gap-4">
+                              {/* Thumbnail */}
+                              <div className="w-16 h-16 rounded-lg bg-secondary flex items-center justify-center flex-shrink-0 overflow-hidden">
+                                {item.image_url ? (
+                                  <img
+                                    src={item.image_url}
+                                    alt={item.name}
+                                    className="w-full h-full object-cover"
+                                  />
+                                ) : (
+                                  <UtensilsCrossed className="h-6 w-6 text-muted-foreground" />
+                                )}
+                              </div>
+                              
+                              <div className="flex-1 min-w-0">
                                 <div className="flex items-center gap-3">
-                                  <h3 className="font-medium">{item.name}</h3>
+                                  <h3 className="font-medium truncate">{item.name}</h3>
                                   {!item.is_available && (
                                     <span className="text-xs text-muted-foreground bg-secondary px-2 py-0.5 rounded">
                                       Out of stock
@@ -442,7 +476,7 @@ const AdminMenu = () => {
                                   )}
                                 </div>
                                 {item.description && (
-                                  <p className="text-sm text-muted-foreground">{item.description}</p>
+                                  <p className="text-sm text-muted-foreground truncate">{item.description}</p>
                                 )}
                               </div>
                               <div className="flex items-center gap-4">
