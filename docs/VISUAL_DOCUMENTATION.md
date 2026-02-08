@@ -910,4 +910,350 @@ Navigate to each page in the preview and use browser screenshot tools or the Lov
 
 ---
 
+---
+
+## 7. Data Flow Diagrams (DFD)
+
+### 7.1 Context Diagram (Level 0 DFD)
+
+```
+                          ┌─────────────────────────┐
+                          │                         │
+    ┌──────────┐          │                         │          ┌──────────┐
+    │          │ ─────────│►  Order Request         │          │          │
+    │          │  Menu    │                         │  Order   │          │
+    │ Customer │  Browse  │     CUSTECH Eats        │  Status  │  Staff/  │
+    │          │ ◄────────│   Food Ordering         │  Updates │  Admin   │
+    │          │  Menu    │      System             │ ────────►│          │
+    │          │  Data    │                         │          │          │
+    │          │          │                         │ Menu     │          │
+    │          │ Order    │                         │ Updates  │          │
+    │          │ Status   │                         │ ◄────────│          │
+    │          │ ◄────────│                         │          │          │
+    └──────────┘          │                         │          └──────────┘
+                          │                         │
+                          └─────────────────────────┘
+```
+
+**Description:**
+- **Customer** browses the menu, places orders, and receives real-time order status updates.
+- **Staff/Admin** manages the menu (add/edit/delete items), processes incoming orders, and updates order statuses.
+
+---
+
+### 7.2 Level 1 DFD — Main Processes
+
+```
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│                            LEVEL 1 DATA FLOW DIAGRAM                            │
+└─────────────────────────────────────────────────────────────────────────────────┘
+
+                                                        ┌─────────────────┐
+    ┌──────────┐                                        │   D1: Menu      │
+    │          │── Login/Register ──►┌──────────────┐   │   Categories    │
+    │          │                     │              │   │   & Items       │
+    │          │◄─ Auth Token ──────│  1.0 User    │   └────────┬────────┘
+    │          │                     │ Authentication│            │
+    │          │                     │              │            │
+    │ Customer │                     └──────────────┘            │
+    │          │                                                 │
+    │          │── Menu Request ────►┌──────────────┐            │
+    │          │                     │              │◄───────────┘
+    │          │◄─ Menu Data ───────│  2.0 Menu    │   (Read menu data)
+    │          │                     │  Browsing    │
+    │          │                     │              │
+    │          │                     └──────────────┘
+    │          │
+    │          │── Cart Items ──────►┌──────────────┐   ┌─────────────────┐
+    │          │   & Special Notes   │              │──►│   D2: Orders    │
+    │          │                     │  3.0 Order   │   │   Database      │
+    │          │◄─ Order Number ────│  Placement   │   │                 │
+    │          │   & Confirmation    │              │   └────────┬────────┘
+    │          │                     └──────────────┘            │
+    │          │                                                 │
+    │          │── Order ID ────────►┌──────────────┐            │
+    │          │                     │              │◄───────────┘
+    │          │◄─ Live Status ─────│  4.0 Order   │   (Read order data)
+    │          │   Updates           │  Tracking    │
+    │          │                     │  (Realtime)  │
+    └──────────┘                     └──────────────┘
+
+                                            ▲
+                                            │
+                                     Status Updates
+                                            │
+
+    ┌──────────┐                     ┌──────────────┐   ┌─────────────────┐
+    │          │── Update Status ───►│              │──►│   D2: Orders    │
+    │  Staff/  │                     │  5.0 Order   │   │   Database      │
+    │  Admin   │◄─ Order Queue ─────│  Management  │◄──│   (Update)      │
+    │          │                     │              │   └─────────────────┘
+    │          │                     └──────────────┘
+    │          │
+    │          │── Menu Changes ────►┌──────────────┐   ┌─────────────────┐
+    │          │   (Add/Edit/Delete) │              │──►│   D1: Menu      │
+    │          │                     │  6.0 Menu    │   │   Categories    │
+    │          │◄─ Confirmation ────│  Management  │   │   & Items       │
+    │          │                     │              │   │   (Update)      │
+    │          │                     └──────────────┘   └─────────────────┘
+    │          │
+    │          │── Report Request ──►┌──────────────┐   ┌─────────────────┐
+    │          │                     │              │◄──│   D2: Orders    │
+    │          │◄─ Sales Reports ───│  7.0 Reports │   │   Database      │
+    │          │   & Analytics       │  Generation  │   │   (Read)        │
+    │          │                     │              │   └─────────────────┘
+    └──────────┘                     └──────────────┘
+```
+
+**Process Descriptions:**
+
+| Process | Name | Description |
+|---------|------|-------------|
+| 1.0 | User Authentication | Handles login, registration, and role-based access control |
+| 2.0 | Menu Browsing | Retrieves menu categories and items for display |
+| 3.0 | Order Placement | Creates new orders with items, calculates totals, generates order numbers |
+| 4.0 | Order Tracking | Provides real-time order status updates via WebSocket subscriptions |
+| 5.0 | Order Management | Staff updates order statuses (pending → preparing → ready → completed) |
+| 6.0 | Menu Management | Staff/Admin CRUD operations on menu categories and items |
+| 7.0 | Reports Generation | Aggregates order data for sales analytics and reporting |
+
+**Data Stores:**
+
+| Store | Name | Contents |
+|-------|------|----------|
+| D1 | Menu Database | `menu_categories` and `menu_items` tables |
+| D2 | Orders Database | `orders` and `order_items` tables |
+| D3 | Users Database | `profiles` and `user_roles` tables (via auth system) |
+
+---
+
+### 7.3 Level 2 DFD — Order Placement (Process 3.0 Decomposed)
+
+```
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│                    LEVEL 2 DFD — ORDER PLACEMENT (Process 3.0)                  │
+└─────────────────────────────────────────────────────────────────────────────────┘
+
+    ┌──────────┐
+    │          │
+    │ Customer │
+    │          │
+    └────┬─────┘
+         │
+         │  Selected Items
+         │  + Quantities
+         │  + Notes
+         ▼
+    ┌──────────────┐
+    │              │
+    │  3.1 Add     │       ┌──────────────────┐
+    │  Items to    │──────►│  D4: Cart        │
+    │  Cart        │       │  (Browser State) │
+    │              │       │                  │
+    └──────────────┘       │  • MenuItem ID   │
+                           │  • Quantity      │
+                           │  • Unit Price    │
+                           │  • Notes         │
+                           └────────┬─────────┘
+                                    │
+                                    │  Cart Contents
+                                    ▼
+                           ┌──────────────┐
+                           │              │
+                           │  3.2 Validate│       ┌──────────────────┐
+                           │  Cart &      │◄─────│  D3: Users       │
+                           │  Check Auth  │       │  (Auth Session)  │
+                           │              │       └──────────────────┘
+                           └───────┬──────┘
+                                   │
+                                   │  Validated Cart + User ID
+                                   ▼
+                           ┌──────────────┐
+                           │              │
+                           │  3.3 Generate│       ┌──────────────────┐
+                           │  Order       │◄─────│  DB Function:    │
+                           │  Number      │       │  generate_order  │
+                           │              │       │  _number()       │
+                           └───────┬──────┘       └──────────────────┘
+                                   │
+                                   │  Order Number (YYMMDD-XXXX)
+                                   ▼
+                           ┌──────────────┐
+                           │              │       ┌──────────────────┐
+                           │  3.4 Create  │──────►│  D2: Orders      │
+                           │  Order &     │       │  Database        │
+                           │  Order Items │       │                  │
+                           │              │──────►│  orders table    │
+                           └───────┬──────┘       │  order_items     │
+                                   │              │  table           │
+                                   │              └──────────────────┘
+                                   │
+                                   │  Order Confirmation
+                                   ▼
+                           ┌──────────────┐
+                           │              │
+                           │  3.5 Clear   │       ┌──────────────────┐
+                           │  Cart &      │──────►│  D4: Cart        │
+                           │  Redirect    │       │  (Clear State)   │
+                           │              │       └──────────────────┘
+                           └──────────────┘
+```
+
+---
+
+### 7.4 Level 2 DFD — Order Management (Process 5.0 Decomposed)
+
+```
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│                   LEVEL 2 DFD — ORDER MANAGEMENT (Process 5.0)                  │
+└─────────────────────────────────────────────────────────────────────────────────┘
+
+    ┌──────────┐
+    │  Staff/  │
+    │  Admin   │
+    └────┬─────┘
+         │
+         │  View Orders Request
+         ▼
+    ┌──────────────┐       ┌──────────────────┐
+    │              │◄─────│  D2: Orders      │
+    │  5.1 Fetch   │       │  Database        │
+    │  Active      │       │  (All orders     │
+    │  Orders      │       │   with items)    │
+    │              │       └──────────────────┘
+    └───────┬──────┘
+            │
+            │  Order List (with customer info)
+            ▼
+    ┌──────────────┐
+    │              │
+    │  5.2 Display │       ┌──────────────────┐
+    │  Orders by   │◄─────│  D5: Realtime    │
+    │  Status Tab  │       │  Subscription    │
+    │              │       │  (Live Updates)  │
+    │  • Pending   │       └──────────────────┘
+    │  • Preparing │
+    │  • Ready     │
+    │  • Completed │
+    └───────┬──────┘
+            │
+            │  Status Change Action
+            ▼
+    ┌──────────────┐       ┌──────────────────┐
+    │              │──────►│  D2: Orders      │
+    │  5.3 Update  │       │  Database        │
+    │  Order       │       │  (Update status) │
+    │  Status      │       └──────────────────┘
+    │              │
+    │  pending ──► preparing ──► ready ──► completed
+    │              │
+    └───────┬──────┘
+            │
+            │  Status Change Event
+            ▼
+    ┌──────────────┐       ┌──────────────────┐
+    │              │──────►│  D5: Realtime    │
+    │  5.4 Notify  │       │  Channel         │
+    │  Customer    │       │  (Broadcast to   │
+    │  (Realtime)  │       │   customer)      │
+    │              │       └──────────────────┘
+    └──────────────┘
+```
+
+---
+
+### 7.5 Data Dictionary
+
+| Data Element | Type | Description | Source/Destination |
+|-------------|------|-------------|-------------------|
+| `user_id` | UUID | Unique identifier for authenticated user | Auth System |
+| `full_name` | Text | User's display name | Registration Form |
+| `email` | Text | User's email address | Registration Form |
+| `role` | Enum | User permission level (customer/staff/admin) | `user_roles` table |
+| `menu_item` | Object | Food item with name, price, description, image | `menu_items` table |
+| `category` | Object | Menu category grouping | `menu_categories` table |
+| `cart_item` | Object | Menu item + quantity + notes | Browser State (Context) |
+| `order` | Object | Complete order with items and total | `orders` table |
+| `order_item` | Object | Individual line item in an order | `order_items` table |
+| `order_number` | Text | Human-readable order ID (YYMMDD-XXXX format) | DB Function |
+| `order_status` | Enum | Current state of order | `orders.status` column |
+| `total_amount` | Numeric | Calculated sum of all order items | Computed on placement |
+| `special_requests` | Text | Customer's additional instructions | Cart Page form |
+| `estimated_ready_time` | Timestamp | When order should be ready | Set by staff |
+
+---
+
+### 7.6 Entity Relationship Diagram (ERD)
+
+```
+┌─────────────────────┐         ┌─────────────────────┐
+│    auth.users        │         │     profiles         │
+├─────────────────────┤         ├─────────────────────┤
+│ PK  id         UUID │◄────────│ FK  user_id     UUID │
+│     email      TEXT │         │ PK  id          UUID │
+│     password   HASH │         │     full_name   TEXT │
+│     created_at  TS  │         │     phone       TEXT │
+└─────────┬───────────┘         │     student_    TEXT │
+          │                     │       staff_id       │
+          │                     │     created_at   TS  │
+          │ 1                   │     updated_at   TS  │
+          │                     └─────────────────────┘
+          │
+          │              ┌─────────────────────┐
+          │              │     user_roles       │
+          │              ├─────────────────────┤
+          └──────────────│ FK  user_id     UUID │
+                    1:N  │ PK  id          UUID │
+                         │     role   app_role  │
+                         │     created_at   TS  │
+                         └─────────────────────┘
+
+┌─────────────────────┐         ┌─────────────────────┐
+│  menu_categories     │         │     menu_items       │
+├─────────────────────┤         ├─────────────────────┤
+│ PK  id         UUID │◄────────│ FK  category_id UUID │
+│     name       TEXT │    1:N  │ PK  id          UUID │
+│     description TEXT │         │     name        TEXT │
+│     display_   INT  │         │     description TEXT │
+│       order         │         │     price    NUMERIC │
+│     created_at  TS  │         │     image_url   TEXT │
+└─────────────────────┘         │     is_available BOOL│
+                                │     preparation INT  │
+                                │       _time          │
+                                │     created_at   TS  │
+                                │     updated_at   TS  │
+                                └──────────┬──────────┘
+                                           │
+                                           │ 1
+                                           │
+┌─────────────────────┐         ┌──────────┴──────────┐
+│      orders          │         │    order_items       │
+├─────────────────────┤         ├─────────────────────┤
+│ PK  id         UUID │◄────────│ FK  order_id    UUID │
+│ FK  user_id    UUID │    1:N  │ FK  menu_item_  UUID │
+│     order_     TEXT │         │       id             │
+│       number        │         │ PK  id          UUID │
+│     status  ENUM    │         │     item_name   TEXT │
+│     special_   TEXT │         │     quantity    INT  │
+│       requests      │         │     unit_price  NUM │
+│     total_   NUMERIC│         │     notes       TEXT │
+│       amount        │         │     created_at   TS │
+│     estimated_ TS   │         └─────────────────────┘
+│       ready_time    │
+│     created_at  TS  │
+│     updated_at  TS  │
+└─────────────────────┘
+
+RELATIONSHIPS:
+═══════════════
+auth.users    1 ──── N  profiles       (one user has one profile)
+auth.users    1 ──── N  user_roles     (one user can have multiple roles)
+auth.users    1 ──── N  orders         (one user can place many orders)
+menu_categories 1 ── N  menu_items     (one category has many items)
+orders        1 ──── N  order_items    (one order has many line items)
+menu_items    1 ──── N  order_items    (one menu item can appear in many orders)
+```
+
+---
+
 *This visual documentation is part of the CUSTECH Eats project for [Course Name/Code].*
