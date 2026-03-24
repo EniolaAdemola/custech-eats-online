@@ -1,3 +1,5 @@
+<img width="1449" height="1034" alt="image" src="https://github.com/user-attachments/assets/5c8c108d-478e-45f8-86b4-1073f5f22a19" />
+
 # CUSTECH Eats — University Restaurant Online Ordering System
 
 A full-featured web application that enables CUSTECH University students and staff to browse menus, place food orders online, and track their order status in real-time. Restaurant staff and administrators can manage menus, process orders, and generate reports through a dedicated dashboard.
